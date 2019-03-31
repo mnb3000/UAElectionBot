@@ -41,11 +41,11 @@ async function formatMessage(candidateCount = 0) {
 
 const bot = new TelegramBot(process.env['BOT_TOKEN'], { polling: true });
 
-bot.onText(/^\/results$/, async (msg) => {
+bot.onText(/^\/results/, async (msg) => {
   const response = await formatMessage(5);
   await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
 });
-bot.onText(/^\/results_all$/, async (msg) => {
+bot.onText(/^\/results_all/, async (msg) => {
   const response = await formatMessage();
   await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
 });
