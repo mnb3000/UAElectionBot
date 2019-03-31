@@ -7,7 +7,7 @@ async function getResults() {
   const allTables = document.querySelectorAll('table');
   const firstTableRows = allTables.item(0).rows;
   const processedPercent = parseFloat(firstTableRows.item(0).cells.item(1).textContent.trim());
-  const voteCount = parseInt(firstTableRows.item(1).cells.item(1).textContent.trim().replace(' ', ''), 10);
+  const voteCount = parseInt(firstTableRows.item(1).cells.item(1).textContent.trim().replace(/ /g, ''), 10);
   const invalidPercent = parseFloat(firstTableRows.item(2).cells.item(1).textContent.trim());
 
   const secondTableRows = allTables.item(1).rows;
@@ -17,8 +17,8 @@ async function getResults() {
     if (cells.item(0).textContent === 'Кандидат') continue;
     candidates.push({
       name: cells.item(0).textContent,
-      percent: parseFloat(cells.item(2).textContent.trim().replace(' ', '')),
-      count: parseInt(cells.item(3).textContent.trim().replace(' ', ''), 10),
+      percent: parseFloat(cells.item(2).textContent.trim().replace(/ /g, '')),
+      count: parseInt(cells.item(3).textContent.trim().replace(/ /g, ''), 10),
     });
   }
 
