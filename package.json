@@ -1,0 +1,13 @@
+{
+  "name": "ua-election-bot",
+  "version": "1.0.0",
+  "description": "Ukrainian election result parser",
+  "main": "index.js",
+  "repository": "https://github.com/mnb3000/UAElectionBot",
+  "author": "mnb3000",
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^14.0.0",
+    "node-telegram-bot-api": "^0.30.0"
+  }
+}
