@@ -32,14 +32,14 @@ async function getResults() {
 
 async function formatMessage(candidateCount = 0) {
   const results = await getResults();
-  let response = `*${results.processedPercent}%* протоколов\n*${results.voteCount}* голосов\n*${results.invalidPercent}%* бюллетеней недействительны\n\n`;
+  let response = `*${results.processedPercent}%* протоколiв\n*${results.voteCount}* голосiв\n*${results.invalidPercent}%* бюлетеней недiйснi\n\n`;
   results.candidates.slice(0, candidateCount ? candidateCount : undefined).forEach((candidate) => {
-    response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосов)_\n`
+    response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
   });
   return response
 }
 
-const bot = new TelegramBot('846188647:AAGyAw0MWKBhV6BO89E9ccYE3Uxh-HGki8k', { polling: true });
+const bot = new TelegramBot(process.env['BOT_TOKEN'], { polling: true });
 
 bot.onText(/^\/results$/, async (msg) => {
   const response = await formatMessage(5);
@@ -51,5 +51,5 @@ bot.onText(/^\/results_all$/, async (msg) => {
 });
 
 bot.onText(/^\/start$/, async (msg) => {
-  await bot.sendMessage(msg.chat.id, 'Привет! Я помогаю следить за обработкой результатов выборов президента Украины!\nНажми /results чтобы увидеть текущие результаты');
+  await bot.sendMessage(msg.chat.id, 'Привiт! Я допомогаю спостерiгати за обробкою результатiв выборiв президента України!\nНатисни /results!');
 });
