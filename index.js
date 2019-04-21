@@ -2,7 +2,7 @@ const { JSDOM } = require('jsdom');
 const TelegramBot = require('node-telegram-bot-api');
 const Datastore = require('nedb-promises');
 
-async function getResults(datastore) {
+async function getResults(resultsDatastore, subsDatastore, bot) {
   const dom = await JSDOM.fromURL("https://cvk.gov.ua/pls/vp2019/wp300pt001f01=719.html");
   const { document } = dom.window;
   const allTables = document.querySelectorAll('table');
@@ -23,7 +23,7 @@ async function getResults(datastore) {
     });
   }
 
-  const foundResult = await datastore.findOne({ processedPercent });
+  const foundResult = await resultsDatastore.findOne({ processedPercent });
   console.log(foundResult);
 
   const result = {
@@ -34,14 +34,21 @@ async function getResults(datastore) {
   };
 
   if (!foundResult) {
-    await datastore.insert(result);
+    await resultsDatastore.insert(result);
+    const subs = await subsDatastore.find();
+    const promiseArr = [];
+    const response = formatMessage(resultsDatastore, subsDatastore, 2);
+    subs.forEach((sub) => {
+      promiseArr.push(bot.sendMessage(sub.tgId, response, { parse_mode: 'Markdown' }))
+    });
+    await Promise.all(promiseArr);
   }
 
   return result;
 }
 
-async function formatMessage(datastore, candidateCount = 0) {
-  const results = await getResults(datastore);
+async function formatMessage(resultsDatastore, subsDatastore, bot, candidateCount = 0) {
+  const results = await getResults(resultsDatastore, subsDatastore, bot);
   let response = `*${results.processedPercent}%* протоколiв\n*${results.voteCount}* голосiв\n*${results.invalidPercent}%* бюлетеней недiйснi\n\n`;
   results.candidates.slice(0, candidateCount ? candidateCount : undefined).forEach((candidate) => {
     response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
@@ -51,10 +58,11 @@ async function formatMessage(datastore, candidateCount = 0) {
 
 async function main() {
   const bot = new TelegramBot(process.env['BOT_TOKEN'], { polling: true });
-  const datastore = Datastore.create({ filename: './db.db', timestampData: true });
+  const resultsDatastore = Datastore.create({ filename: './results.db', timestampData: true });
+  const subsDatastore = Datastore.create({ filename: './subs.db' });
 
   bot.onText(/^\/results(?:[A-Za-z@\d]*)?$/, async (msg) => {
-    const response = await formatMessage(datastore, 2);
+    const response = await formatMessage(resultsDatastore, subsDatastore, bot, 2);
     await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
   });
   // bot.onText(/^\/results_all/, async (msg) => {
@@ -62,16 +70,36 @@ async function main() {
   //   await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
   // });
 
-  bot.onText(/^\/start$/, async (msg) => {
+  bot.onText(/^\/start(?:[A-Za-z@\d]*)?$/, async (msg) => {
     await bot.sendMessage(msg.chat.id,
-      '*Привiт! Я допомогаю спостерiгати за обробкою результатiв выборiв президента України!*\nНатисни /results!\n\n_Розробник:_ @mnb3000\n_Код:_ https://github.com/mnb3000/UAElectionBot',
+      '*Привiт! Я допомогаю спостерiгати за обробкою результатiв выборiв президента України!*\nНатисни /results або /subscribe!\n\n_Розробник:_ @mnb3000\n_Код:_ https://github.com/mnb3000/UAElectionBot',
       { parse_mode: 'Markdown' });
   });
 
+  bot.onText(/^\/subscribe(?:[A-Za-z@\d]*)?$/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (msg.chat.type !== 'private') {
+      await bot.sendMessage(chatId, 'Пiдписка на результати можлива лише у особистих повiдомленнях!');
+      return;
+    }
+    await subsDatastore.insert({ tgId: chatId, username: msg.from.username });
+    await bot.sendMessage(chatId, 'Ти успiшно пiдписався на змiни у результатах!');
+  });
+
+  bot.onText(/^\/unsubscribe(?:[A-Za-z@\d]*)?$/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (msg.chat.type !== 'private') {
+      await bot.sendMessage(chatId, 'Пiдписка на результати можлива лише у особистих повiдомленнях!');
+      return;
+    }
+    await subsDatastore.remove({ tgId: chatId });
+    await bot.sendMessage(chatId, 'Ти успiшно вiдписався вiд змiн у результатах!');
+  });
+
   setTimeout(function run() {
-    getResults(datastore);
-    setTimeout(run, 300000);
-  }, 300000);
+    getResults(resultsDatastore);
+    setTimeout(run, 60000);
+  }, 60000);
 }
 
 main()
