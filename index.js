@@ -49,7 +49,7 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
 }
 
 async function getCachedResult(resultsDatastore, subsDatastore, bot) {
-  const cachedResults = await resultsDatastore.find().sort({ createdAt: 1 });
+  const cachedResults = await resultsDatastore.find().sort({ createdAt: -1 });
   const cachedResult = cachedResults[0];
   if (cachedResult) {
     return cachedResult
