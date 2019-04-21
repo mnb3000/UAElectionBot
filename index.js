@@ -62,7 +62,6 @@ async function main() {
   bot.onText(/^\/results(?:[A-Za-z@\d]*)?$/, async (msg) => {
     const result = await getResults(resultsDatastore, subsDatastore, bot);
     const response = await formatMessage(result, 2);
-    console.log(response);
     await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
   });
   // bot.onText(/^\/results_all/, async (msg) => {
