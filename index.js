@@ -17,7 +17,7 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
     const { cells } = row;
     if (cells.item(0).textContent === 'Кандидат') continue;
     candidates.push({
-      name: cells.item(0).textContent,
+      name: cells.item(0).textContent.replace(/([А-Я])/g, ' $1').trim(),
       percent: parseFloat(cells.item(2).textContent.trim().replace(/ /g, '')),
       count: parseInt(cells.item(3).textContent.trim().replace(/ /g, ''), 10),
     });
