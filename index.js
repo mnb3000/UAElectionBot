@@ -24,7 +24,6 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
   }
 
   const foundResult = await resultsDatastore.findOne({ processedPercent });
-  console.log(foundResult);
 
   const result = {
     processedPercent,
@@ -37,7 +36,10 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
     await resultsDatastore.insert(result);
     const subs = await subsDatastore.find();
     const promiseArr = [];
-    const response = formatMessage(resultsDatastore, subsDatastore, 2);
+    let response = `*${result.processedPercent}%* протоколiв\n*${result.voteCount}* голосiв\n*${result.invalidPercent}%* бюлетеней недiйснi\n\n`;
+    result.candidates.forEach((candidate) => {
+      response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
+    });
     subs.forEach((sub) => {
       promiseArr.push(bot.sendMessage(sub.tgId, response, { parse_mode: 'Markdown' }))
     });
@@ -48,9 +50,9 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
 }
 
 async function formatMessage(resultsDatastore, subsDatastore, bot, candidateCount = 0) {
-  const results = await getResults(resultsDatastore, subsDatastore, bot);
-  let response = `*${results.processedPercent}%* протоколiв\n*${results.voteCount}* голосiв\n*${results.invalidPercent}%* бюлетеней недiйснi\n\n`;
-  results.candidates.slice(0, candidateCount ? candidateCount : undefined).forEach((candidate) => {
+  const result = await getResults(resultsDatastore, subsDatastore, bot);
+  let response = `*${result.processedPercent}%* протоколiв\n*${result.voteCount}* голосiв\n*${result.invalidPercent}%* бюлетеней недiйснi\n\n`;
+  result.candidates.slice(0, candidateCount ? candidateCount : undefined).forEach((candidate) => {
     response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
   });
   return response
@@ -63,6 +65,7 @@ async function main() {
 
   bot.onText(/^\/results(?:[A-Za-z@\d]*)?$/, async (msg) => {
     const response = await formatMessage(resultsDatastore, subsDatastore, bot, 2);
+    console.log(response);
     await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
   });
   // bot.onText(/^\/results_all/, async (msg) => {
