@@ -3,7 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const Datastore = require('nedb-promises');
 
 async function getResults(resultsDatastore, subsDatastore, bot) {
-  const dom = await JSDOM.fromURL("https://cvk.gov.ua/pls/vp2019/wp300pt001f01=719.html");
+  const dom = await JSDOM.fromURL("https://www.cvk.gov.ua/pls/vp2019/wp300pt001f01=720.html");
   const { document } = dom.window;
   const allTables = document.querySelectorAll('table');
   const firstTableRows = allTables.item(0).rows;
