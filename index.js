@@ -36,10 +36,7 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
     await resultsDatastore.insert(result);
     const subs = await subsDatastore.find();
     const promiseArr = [];
-    let response = `*${result.processedPercent}%* протоколiв\n*${result.voteCount}* голосiв\n*${result.invalidPercent}%* бюлетеней недiйснi\n\n`;
-    result.candidates.forEach((candidate) => {
-      response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
-    });
+    const response = formatMessage(result, 2);
     subs.forEach((sub) => {
       promiseArr.push(bot.sendMessage(sub.tgId, response, { parse_mode: 'Markdown' }))
     });
@@ -49,8 +46,7 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
   return result;
 }
 
-async function formatMessage(resultsDatastore, subsDatastore, bot, candidateCount = 0) {
-  const result = await getResults(resultsDatastore, subsDatastore, bot);
+async function formatMessage(result, candidateCount = 0) {
   let response = `*${result.processedPercent}%* протоколiв\n*${result.voteCount}* голосiв\n*${result.invalidPercent}%* бюлетеней недiйснi\n\n`;
   result.candidates.slice(0, candidateCount ? candidateCount : undefined).forEach((candidate) => {
     response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
@@ -64,7 +60,8 @@ async function main() {
   const subsDatastore = Datastore.create({ filename: './subs.db' });
 
   bot.onText(/^\/results(?:[A-Za-z@\d]*)?$/, async (msg) => {
-    const response = await formatMessage(resultsDatastore, subsDatastore, bot, 2);
+    const result = await getResults(resultsDatastore, subsDatastore, bot);
+    const response = await formatMessage(result, 2);
     console.log(response);
     await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
   });
