@@ -23,8 +23,6 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
     });
   }
 
-  const foundResult = await resultsDatastore.findOne({ processedPercent });
-
   const result = {
     processedPercent,
     voteCount,
@@ -32,21 +30,36 @@ async function getResults(resultsDatastore, subsDatastore, bot) {
     candidates
   };
 
+  const foundResult = await resultsDatastore.findOne({ processedPercent });
+
   if (!foundResult) {
     await resultsDatastore.insert(result);
     const subs = await subsDatastore.find();
-    const promiseArr = [];
-    const response = formatMessage(result, 2);
-    subs.forEach((sub) => {
-      promiseArr.push(bot.sendMessage(sub.tgId, response, { parse_mode: 'Markdown' }))
-    });
-    await Promise.all(promiseArr);
+    if (subs.length) {
+      const promiseArr = [];
+      const response = formatMessage(result, 2);
+      subs.forEach((sub) => {
+        promiseArr.push(bot.sendMessage(sub.tgId, response, { parse_mode: 'Markdown' }))
+      });
+      await Promise.all(promiseArr);
+    }
   }
 
   return result;
 }
 
-async function formatMessage(result, candidateCount = 0) {
+async function getCachedResult(resultsDatastore, subsDatastore, bot) {
+  const cachedResults = await resultsDatastore.find().sort({ createdAt: 1 });
+  const cachedResult = cachedResults[0];
+  if (cachedResult) {
+    return cachedResult
+  } else {
+    const result = await getResults(resultsDatastore, subsDatastore, bot);
+    return result;
+  }
+}
+
+function formatMessage(result, candidateCount = 0) {
   let response = `*${result.processedPercent}%* протоколiв\n*${result.voteCount}* голосiв\n*${result.invalidPercent}%* бюлетеней недiйснi\n\n`;
   result.candidates.slice(0, candidateCount ? candidateCount : undefined).forEach((candidate) => {
     response += `*${candidate.name}* - ${candidate.percent}%  _(${candidate.count} голосiв)_\n`
@@ -60,8 +73,8 @@ async function main() {
   const subsDatastore = Datastore.create({ filename: './subs.db' });
 
   bot.onText(/^\/results(?:[A-Za-z@\d]*)?$/, async (msg) => {
-    const result = await getResults(resultsDatastore, subsDatastore, bot);
-    const response = await formatMessage(result, 2);
+    const result = await getCachedResult(resultsDatastore, subsDatastore, bot);
+    const response = formatMessage(result, 2);
     await bot.sendMessage(msg.chat.id, response, { parse_mode: 'Markdown' });
   });
   // bot.onText(/^\/results_all/, async (msg) => {
@@ -95,10 +108,11 @@ async function main() {
     await bot.sendMessage(chatId, 'Ти успiшно вiдписався вiд змiн у результатах!');
   });
 
+  await getResults(resultsDatastore, subsDatastore, bot);
   setTimeout(function run() {
-    getResults(resultsDatastore);
-    setTimeout(run, 60000);
-  }, 60000);
+    getResults(resultsDatastore, subsDatastore, bot);
+    setTimeout(run, 30000);
+  }, 30000);
 }
 
 main()
